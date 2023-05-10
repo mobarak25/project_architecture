@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:project_architecture/core/error/custom_error.dart';
 import 'package:project_architecture/core/error/custom_exception.dart';
@@ -10,7 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:project_architecture/features/app/domain/entities/entities_map/entities_map.dart';
 import 'package:project_architecture/features/app/domain/repositories/local_storage_repo.dart';
 
-const String noInternetConnection = 'No Internet Connection';
+const fetchDataException = 'Failed To Fetch Data';
 
 class RemoteGatewayBase {
   const RemoteGatewayBase();
@@ -19,10 +20,7 @@ class RemoteGatewayBase {
   LocalStorageRepo get _localStorageRepo => getIt<LocalStorageRepo>();
 
   Future<T?> postMethod<T, K>(
-      {required String endpoind,
-      dynamic data,
-      required T responseModal,
-      String? token}) async {
+      {required String endpoind, dynamic data, String? token}) async {
     final fullEndpoint = _baseUrl + endpoind;
     dynamic responseJson;
     final headers = _createHeaders(token);
@@ -32,7 +30,15 @@ class RemoteGatewayBase {
       final response = await http.post(Uri.parse(fullEndpoint),
           headers: headers, body: body);
       responseJson = _handleHTTPResponse(response);
-    } on Exception {}
+      if (responseJson != null) {
+        return fromJson<T, K>(responseJson);
+      }
+    } on SocketException {
+      FetchDataException(
+          CustomError(message: fetchDataException), getIt<IFlutterNavigator>());
+      //Implement pending response system by push notification. Or we can send a GUID withing the api,
+      //and the GUID will store to local, while the connectivity available the api will call again
+    }
 
     return null;
   }

@@ -71,3 +71,14 @@ class FetchDataException extends CustomException {
   final CustomError customError;
   final IFlutterNavigator iFlutterNavigator;
 }
+
+class AppException extends CustomException {
+  AppException(this.customError, this.iFlutterNavigator) : super() {
+    ShowSnackBar(
+        message: customError.message ?? unknownError,
+        navigator: iFlutterNavigator,
+        error: true);
+  }
+  final CustomError customError;
+  final IFlutterNavigator iFlutterNavigator;
+}
