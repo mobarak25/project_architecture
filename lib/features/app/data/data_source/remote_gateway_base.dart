@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:project_architecture/core/injection/injection.dart';
+import 'package:project_architecture/core/navigator/iflutter_navigator.dart';
 import 'package:project_architecture/features/app/data/data_source/local_keys.dart';
 import 'package:project_architecture/features/app/data/data_source/remote_constants.dart';
 import 'package:http/http.dart' as http;
@@ -27,6 +28,7 @@ class RemoteGatewayBase {
       final body = jsonEncode(data);
       final response = await http.post(Uri.parse(fullEndpoint),
           headers: headers, body: body);
+      responseJson = _handleHTTPResponse(response);
     } on Exception {}
 
     return null;
@@ -39,5 +41,24 @@ class RemoteGatewayBase {
       'Authorization':
           'Bearer ${token ?? _localStorageRepo.read(key: tokenDB) ?? ''}',
     };
+  }
+
+  dynamic _handleHTTPResponse(http.Response response) {
+    return _handleResponse(response.statusCode, response.body);
+  }
+
+  _handleResponse(int statusCode, String body) {
+    final navigator = getIt<IFlutterNavigator>();
+
+    switch (statusCode) {
+      case 200:
+        return jsonDecode(body);
+      case 400:
+      case 404:
+        break;
+
+      default:
+        break;
+    }
   }
 }
