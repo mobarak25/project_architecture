@@ -1,10 +1,13 @@
 import 'dart:convert';
 
+import 'package:project_architecture/core/error/custom_error.dart';
+import 'package:project_architecture/core/error/custom_exception.dart';
 import 'package:project_architecture/core/injection/injection.dart';
 import 'package:project_architecture/core/navigator/iflutter_navigator.dart';
 import 'package:project_architecture/features/app/data/data_source/local_keys.dart';
 import 'package:project_architecture/features/app/data/data_source/remote_constants.dart';
 import 'package:http/http.dart' as http;
+import 'package:project_architecture/features/app/domain/entities/entities_map/entities_map.dart';
 import 'package:project_architecture/features/app/domain/repositories/local_storage_repo.dart';
 
 const String noInternetConnection = 'No Internet Connection';
@@ -55,10 +58,42 @@ class RemoteGatewayBase {
         return jsonDecode(body);
       case 400:
       case 404:
+        NotFoundException(error(body), navigator);
         break;
-
+      case 401:
+      case 403:
+        UnauthorizedException(error(body), navigator, _localStorageRepo);
+        break;
+      case 422:
+        InvalidInputException(error(body), navigator);
+        break;
+      case 500:
       default:
+        FetchDataException(
+            CustomError(
+                message:
+                    'An error occurred while communicating with the server with StatusCode $statusCode'),
+            navigator);
         break;
     }
+  }
+
+  CustomError error(String body) {
+    return CustomError.fromJson(jsonDecode(body));
+  }
+
+  static T fromJson<T, K>(dynamic json) {
+    if (json is Iterable) {
+      return _fromJsonList<K>(json) as T;
+    }
+    return EntityMap.mapModal<T, K>(json) as T;
+
+    // final classMirror = reflector.reflectType(T) as ClassMirror;
+    // final data = classMirror.newInstance("fromJson", [json]);
+    // return data as T;
+  }
+
+  static List<K>? _fromJsonList<K>(Iterable<dynamic> jsonList) {
+    return jsonList.map<K>((dynamic json) => fromJson<K, void>(json)).toList();
   }
 }
