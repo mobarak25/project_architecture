@@ -1,7 +1,7 @@
 import 'package:injectable/injectable.dart';
 import 'package:project_architecture/core/error/custom_error.dart';
 import 'package:project_architecture/core/error/custom_exception.dart';
-import 'package:project_architecture/core/injection/injection.dart';
+import 'package:project_architecture/core/injection/global.dart';
 import 'package:project_architecture/core/navigator/iflutter_navigator.dart';
 import 'package:project_architecture/core/network_info/network_info.dart';
 import 'package:project_architecture/core/utils/utilities.dart';
@@ -36,17 +36,32 @@ class ApiRepoImpl extends RemoteGatewayBase implements ApiRepo {
       {required String endpoint,
       body,
       required T responseModal,
-      String? token}) {
-    throw UnimplementedError();
+      String? token}) async {
+    dynamic data;
+    if (await networkInfo.isConnected) {
+      data = await getMethod<T, void>(endpoind: endpoint);
+    } else {
+      AppException(CustomError(message: noInternetConnection),
+          getIt<IFlutterNavigator>());
+    }
+    return data;
   }
 
   @override
   Future<T?> multipart<T, K>(
       {required String endpoint,
-      Map<String, dynamic>? body,
+      Map<String, String>? body,
       List<ImageFile>? files,
       required T responseModal,
-      String? token}) {
-    throw UnimplementedError();
+      String? token}) async {
+    dynamic data;
+    if (await networkInfo.isConnected) {
+      data = multiPartMethod<T, void>(
+          endpoind: endpoint, data: body, files: files, token: token);
+    } else {
+      AppException(CustomError(message: noInternetConnection),
+          getIt<IFlutterNavigator>());
+    }
+    return data;
   }
 }

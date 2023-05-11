@@ -3,8 +3,9 @@ import 'dart:io';
 
 import 'package:project_architecture/core/error/custom_error.dart';
 import 'package:project_architecture/core/error/custom_exception.dart';
-import 'package:project_architecture/core/injection/injection.dart';
+import 'package:project_architecture/core/injection/global.dart';
 import 'package:project_architecture/core/navigator/iflutter_navigator.dart';
+import 'package:project_architecture/core/utils/utilities.dart';
 import 'package:project_architecture/features/app/data/data_source/local_keys.dart';
 import 'package:project_architecture/features/app/data/data_source/remote_constants.dart';
 import 'package:http/http.dart' as http;
@@ -23,7 +24,7 @@ class RemoteGatewayBase {
       {required String endpoind, dynamic data, String? token}) async {
     final fullEndpoint = _baseUrl + endpoind;
     dynamic responseJson;
-    final headers = _createHeaders(token);
+    final headers = _createHeaders(token: token);
 
     try {
       final body = jsonEncode(data);
@@ -43,7 +44,64 @@ class RemoteGatewayBase {
     return null;
   }
 
-  Map<String, String>? _createHeaders(String? token) {
+  Future<T?> getMethod<T, K>({required String endpoind}) async {
+    final fullEndpoint = _baseUrl + endpoind;
+    dynamic responseJson;
+    final headers = _createHeaders();
+    try {
+      final response =
+          await http.get(Uri.parse(fullEndpoint), headers: headers);
+
+      responseJson = _handleHTTPResponse(response);
+
+      if (responseJson != null) {
+        return fromJson<T, K>(responseJson);
+      }
+    } on SocketException {
+      FetchDataException(
+          CustomError(message: fetchDataException), getIt<IFlutterNavigator>());
+      //Implement pending response system by push notification. Or we can send a GUID withing the api,
+      //and the GUID will store to local, while the connectivity available the api will call again
+    }
+
+    return null;
+  }
+
+  Future<T?> multiPartMethod<T, K>(
+      {required String endpoind,
+      Map<String, String>? data,
+      List<ImageFile>? files,
+      String? token}) async {
+    final fullEndpoint = _baseUrl + endpoind;
+    dynamic responseJson;
+    final headers = _createHeaders(token: token);
+    try {
+      final request = http.MultipartRequest('POST', Uri.parse(fullEndpoint));
+      request.fields.addAll(headers!);
+      if (data != null) {
+        request.fields.addAll(data);
+      }
+      for (int i = 0; i < files!.length; i++) {
+        final file = await http.MultipartFile.fromPath(
+            files[i].name, files[i].file.name);
+        request.files.add(file);
+      }
+      final response = await request.send();
+
+      responseJson = _handleStreamResponse(response);
+      if (responseJson != null) {
+        return fromJson<T, K>(responseJson);
+      }
+    } on SocketException {
+      FetchDataException(
+          CustomError(message: fetchDataException), getIt<IFlutterNavigator>());
+      //Implement pending response system by push notification. Or we can send a GUID withing the api,
+      //and the GUID will store to local, while the connectivity available the api will call again
+    }
+    return null;
+  }
+
+  Map<String, String>? _createHeaders({String? token}) {
     return <String, String>{
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -54,6 +112,12 @@ class RemoteGatewayBase {
 
   dynamic _handleHTTPResponse(http.Response response) {
     return _handleResponse(response.statusCode, response.body);
+  }
+
+  _handleStreamResponse(http.StreamedResponse response) async {
+    final responseData = await response.stream.toBytes();
+    final responseString = String.fromCharCodes(responseData);
+    return _handleResponse(response.statusCode, responseString);
   }
 
   _handleResponse(int statusCode, String body) {
