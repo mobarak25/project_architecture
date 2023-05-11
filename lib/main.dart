@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:project_architecture/core/injection/injection.dart';
+import 'package:project_architecture/features/app/data/data_source/remote_constants.dart';
+import 'package:project_architecture/features/app/domain/entities/post.dart';
 import 'package:project_architecture/features/app/domain/repositories/api_repo.dart';
 
 void main() {
@@ -29,7 +31,16 @@ class MyHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: GestureDetector(child: const Text("data")),
+        child: GestureDetector(
+          onTap: () async {
+            final response = await apiRepo.get(
+                endpoint: postOneEndpoint, responseModal: const Post());
+            if (response != null) {
+              print(response.body);
+            }
+          },
+          child: const Text("data"),
+        ),
       ),
     );
   }
