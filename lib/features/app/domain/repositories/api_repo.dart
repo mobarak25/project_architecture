@@ -14,9 +14,10 @@ abstract class ApiRepo {
     required T responseModal,
     String? token,
   });
+
   Future<T?> multipart<T, K>({
     required String endpoint,
-    Map<String, dynamic>? body,
+    Map<String, String>? body,
     List<ImageFile> files,
     required T responseModal,
     String? token,
