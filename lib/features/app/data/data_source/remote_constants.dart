@@ -1,1 +1,2 @@
-const String baseUrl = "http://118.67.217.203:8092/api/v1/";
+const String baseUrl = "https://jsonplaceholder.typicode.com/";
+const String postOneEndpoint = "posts/1";
