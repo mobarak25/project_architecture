@@ -1,2 +1,2 @@
 const String baseUrl = "https://jsonplaceholder.typicode.com/";
-const String postOneEndpoint = "posts/1";
+const String loginEndpoint = "posts/1";
